@@ -2,6 +2,7 @@
 
 import { useBittensorAccounts } from "@/hooks/useBittensor";
 import { ApiPromise, WsProvider } from "@polkadot/api";
+import { web3FromAddress } from "@polkadot/extension-dapp";
 import { cryptoWaitReady } from "@polkadot/util-crypto";
 
 export default function Home() {
@@ -11,17 +12,25 @@ export default function Home() {
 	console.log("injected accounts", accounts);
 
 	const handleTransferClick = async () => {
-		await cryptoWaitReady();
-		const api = await ApiPromise.create({ provider: wsProvider });
+		try {
+			await cryptoWaitReady();
+			const api = await ApiPromise.create({ provider: wsProvider });
+			const account = accounts[0];
+			const wallet = await web3FromAddress(account.address);
+			api.setSigner(wallet.signer);
 
-		const sender = accounts[0].address;
-		const recipient = "5FNaNCPDsJEhTqwY28pVA51LcB3seVY33NRzxUY6myEfim7o";
-		const amount = 1000000000;
+			const recipient = "5FNaNCPDsJEhTqwY28pVA51LcB3seVY33NRzxUY6myEfim7o";
+			const amount = 1000000000;
 
-		const transfer = api.tx.balances.transfer(recipient, amount);
-		const hash = await transfer.signAndSend(sender);
+			console.log("balances:", Object.keys(api.tx.balances));
 
-		console.log("hash:", hash.toHex());
+			const transfer = api.tx.balances.transferKeepAlive(recipient, amount);
+			const hash = await transfer.signAndSend(account.address);
+
+			console.log("hash:", hash.toHex());
+		} catch (err) {
+			console.error(err);
+		}
 	};
 
 	return (
