@@ -1,13 +1,18 @@
+"use client";
+
 import {
   useEffect,
   useState,
 } from 'react';
 
 import {
-  web3AccountsSubscribe,
+  web3Accounts,
   web3Enable,
 } from '@polkadot/extension-dapp';
-import { InjectedAccountWithMeta } from '@polkadot/extension-inject/types';
+import {
+  InjectedAccountWithMeta,
+  InjectedExtension,
+} from '@polkadot/extension-inject/types';
 
 // declare global {
 //   interface Window {
@@ -21,31 +26,29 @@ import { InjectedAccountWithMeta } from '@polkadot/extension-inject/types';
 // }
 
 export const useBittensorAccounts = () => {
-  const [injectedAccounts, setInjectedAccounts] = useState<InjectedAccountWithMeta[]>([])
+  const [accounts, setAccounts] = useState<InjectedAccountWithMeta[] | null>(null)
+  const [wallets, setWallets] = useState<InjectedExtension[] | null>(null)
 
   useEffect(() => {
-    let unsubscribe: () => void | undefined;
-
     const enableWalletProviders = async () => {
-      await web3Enable("my-bittensor-wallet-integration-test");
+      const _wallets = await web3Enable("my-bittensor-wallet-integration-test");
+      setWallets(_wallets)
       // if (wallets.length === 0) {
       //     open("https://bittensor.com/wallet", "_blank")
       // }
+      // const subWallet = wallets.find(w => w.name === "subwallet-js");
 
-
-      unsubscribe = await web3AccountsSubscribe(accounts => {
-        setInjectedAccounts(accounts)
-      })
+      const _accounts = await web3Accounts();
+      setAccounts(_accounts)
     };
 
     enableWalletProviders();
 
     return () => {
-      if (unsubscribe) {
-        unsubscribe();
-      }
+      setAccounts(null)
+      setWallets(null)
     };
   }, []);
 
-  return { accounts: injectedAccounts }
+  return { accounts, wallets }
 }
