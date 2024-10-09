@@ -7,6 +7,7 @@ import { useForm } from "react-hook-form";
 import { useBittensorAccounts } from "@/hooks/useBittensor";
 import { ApiPromise, WsProvider } from "@polkadot/api";
 import { web3FromAddress } from "@polkadot/extension-dapp";
+import { u64 } from "@polkadot/types";
 
 interface TransferForm {
 	sender: string;
@@ -14,10 +15,29 @@ interface TransferForm {
 	amount: number;
 }
 
+const wsProvider = new WsProvider("wss://entrypoint-finney.opentensor.ai:443");
+
 export default function Home() {
 	const { accounts } = useBittensorAccounts();
-	const wsProvider = new WsProvider("wss://entrypoint-finney.opentensor.ai:443");
 	const [response, setResponse] = useState<string | undefined>(undefined);
+	const [balance, setBalance] = useState<number>(0);
+
+	useEffect(() => {
+		const fetchBalance = async () => {
+			if (accounts) {
+				const address = accounts[0].address;
+				console.log("address", address);
+				const api = await ApiPromise.create({ provider: wsProvider });
+
+				const response = await api.query.system.account(address);
+				console.log("response:", response);
+
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+				setBalance(((response as any).data.free as u64).toNumber());
+			}
+		};
+		fetchBalance();
+	}, [accounts]);
 
 	console.log("injected accounts", accounts);
 
@@ -72,6 +92,7 @@ export default function Home() {
 				className="w-[800px] grid border dark:border-white p-8 rounded"
 			>
 				<legend className="text-2xl font-bold mb-5">Transfer Tao</legend>
+				<p className="mb-4">Balance: {balance / 1000000000}</p>
 				<div className="w-full space-y-2 mb-4">
 					<label htmlFor="sender">Sender: </label>
 					<input
